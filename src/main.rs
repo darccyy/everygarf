@@ -3,6 +3,7 @@ use std::{
     path::Path,
     sync::{Arc, Mutex},
     thread,
+    time::Duration,
 };
 
 use every_garfield::{
@@ -19,7 +20,9 @@ fn main() {
     println!("Save folder: {}", folder);
 
     if !Path::new(&folder).exists() {
-        fs::create_dir(&folder).unwrap();
+        if let Err(err) = fs::create_dir(&folder) {
+            panic!("Failed to create folder at `{folder}` - {err:?}");
+        }
     }
 
     let date_first = date::first();
@@ -27,8 +30,12 @@ fn main() {
 
     let all_dates = get_dates_between(date_first, date_today);
 
-    let existing_dates: Vec<_> = fs::read_dir(&folder)
-        .unwrap()
+    let existing_dates = match fs::read_dir(&folder) {
+        Ok(dir) => dir,
+        Err(err) => panic!("Failed to read directory at `{folder}` - {err:?}"),
+    };
+
+    let existing_dates: Vec<_> = existing_dates
         .flatten()
         .filter_map(filename_from_dir_entry)
         .filter_map(|name| date_from_filename(&name))
@@ -59,11 +66,14 @@ fn main() {
     let job_no = Arc::new(Mutex::new(0));
 
     for chunk in missing_dates.chunks(missing_dates.len() / num_threads + 1) {
-        let client = Client::new();
+        let client = Client::builder()
+            .timeout(Duration::from_secs(30))
+            .build()
+            .expect("Failed to build request client");
+
         let chunk = chunk.to_vec();
 
         let folder = folder.clone();
-
         let job_no = job_no.clone();
 
         let handle = thread::spawn(move || {
@@ -77,7 +87,7 @@ fn main() {
                     *job_no += 1;
 
                     if let Err(()) = fetch_and_save_comic(&client, date, &folder, progress).await {
-                        eprintln!("Failed.");
+                        eprintln!("FAILED. Refer to logs for details.");
                         std::process::exit(1);
                     }
                 }

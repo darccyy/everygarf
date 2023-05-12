@@ -68,17 +68,17 @@ pub async fn fetch_and_save_comic(
     folder: &str,
     progress: f32,
 ) -> Result<(), ()> {
-    const ATTEMPTS: u32 = 3;
+    const ATTEMPTS: u32 = 10;
 
     for i in 0..ATTEMPTS {
         match attempt_fetch_and_save(client, date, folder, progress).await {
             Ok(()) => return Ok(()),
 
-            Err(error) => eprintln!("        [warning] Attempt {n} failed: {error:?}", n = i + 1),
+            Err(error) => eprintln!("[warning] [Attempt {n}] Failed: {error}\n", n = i + 1),
         }
     }
 
-    eprintln!("        [ERROR] Failed after {ATTEMPTS} attempts");
+    eprintln!("[ERROR] Failed after {ATTEMPTS} attempts\n");
     return Err(());
 }
 
@@ -87,7 +87,7 @@ pub async fn attempt_fetch_and_save(
     date: NaiveDate,
     folder: &str,
     progress: f32,
-) -> Result<(), ()> {
+) -> Result<(), String> {
     print_step(progress, date, 1, format!("Fetching url of image"));
 
     let url = garf::comic_url(client, date).await?;
