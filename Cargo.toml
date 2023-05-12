@@ -11,3 +11,4 @@ image = "0.24.6"
 reqwest = "0.11.17"
 tokio = { version = "1.28.1", features = ["full"] }
 num_cpus = "1.15.0"
+dirs-next = "2.0.0"

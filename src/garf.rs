@@ -6,7 +6,7 @@ use super::date_to_string;
 /// Get image URL of comic, asynchronously, given a date (`NaiveDate`)
 pub async fn comic_url(client: &Client, date: NaiveDate) -> Result<String, ()> {
     // Convert date to YYYY/MM/DD string
-    let date_string = date_to_string(date, "/");
+    let date_string = date_to_string(date, "/", false);
 
     // Get webpage url from date string
     let url = format!(

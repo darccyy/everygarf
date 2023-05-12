@@ -1,12 +1,26 @@
-use std::{fs, thread};
+use std::{
+    fs,
+    path::Path,
+    sync::{Arc, Mutex},
+    thread,
+};
 
 use every_garfield::{
     date, date_from_filename, fetch_and_save_comic, filename_from_dir_entry, get_dates_between,
+    get_parent_folder,
 };
 use reqwest::Client;
 
 fn main() {
-    let folder = fs::read_to_string("./folder").unwrap().trim().to_string();
+    println!("=== Every-Garfield ===");
+
+    let folder = format!("{}/garfield", get_parent_folder().unwrap());
+
+    println!("Save folder: {}", folder);
+
+    if !Path::new(&folder).exists() {
+        fs::create_dir(&folder).unwrap();
+    }
 
     let date_first = date::first();
     let date_today = date::today();
@@ -20,11 +34,6 @@ fn main() {
         .filter_map(|name| date_from_filename(&name))
         .collect();
 
-    if existing_dates.len() >= all_dates.len() {
-        println!("None missing!");
-        return;
-    }
-
     let mut missing_dates = Vec::new();
 
     for date in all_dates {
@@ -36,28 +45,41 @@ fn main() {
     let job_count = missing_dates.len();
     let num_threads = num_cpus::get().min(job_count);
 
+    if job_count < 1 {
+        println!("Complete! No images missing to download!");
+        return;
+    }
+
     println!(
         "Downloading {} images using {} threads...",
         job_count, num_threads
     );
 
     let mut handles = Vec::new();
+    let job_no = Arc::new(Mutex::new(0));
 
-    for (_thread_no, chunk) in missing_dates
-        .chunks(missing_dates.len() / num_threads + 1)
-        .enumerate()
-    {
+    for chunk in missing_dates.chunks(missing_dates.len() / num_threads + 1) {
         let client = Client::new();
         let chunk = chunk.to_vec();
 
         let folder = folder.clone();
+
+        let job_no = job_no.clone();
 
         let handle = thread::spawn(move || {
             let rt = tokio::runtime::Runtime::new().unwrap();
 
             rt.block_on(async move {
                 for date in chunk {
-                    fetch_and_save_comic(&client, date, &folder).await.unwrap();
+                    let mut job_no = job_no.lock().unwrap();
+
+                    let progress = *job_no as f32 / job_count as f32;
+                    *job_no += 1;
+
+                    if let Err(()) = fetch_and_save_comic(&client, date, &folder, progress).await {
+                        eprintln!("Failed.");
+                        std::process::exit(1);
+                    }
                 }
             });
         });
@@ -69,5 +91,5 @@ fn main() {
         handle.join().unwrap();
     }
 
-    println!("Complete!\nDownloaded {} images", job_count);
+    println!("Complete! Downloaded {} images", job_count);
 }
