@@ -4,16 +4,12 @@ use reqwest::Client;
 use super::{date_to_string, download, url};
 
 /// Fetch image and save to file
-pub async fn fetch_and_save(date: NaiveDate, folder: &str, thread_no: usize) -> Result<(), String> {
-    // Create http client, with custom timeout
-    // TODO Move to ouside loop
-    // TODO Move timeout to cli argument
-    let client = Client::builder()
-        .timeout(std::time::Duration::from_secs(10))
-        .build()
-        .map_err(|err| format!("Failed to build request client - {err:?}"))
-        .unwrap();
-
+pub async fn fetch_and_save(
+    client: &Client,
+    date: NaiveDate,
+    folder: &str,
+    thread_no: usize,
+) -> Result<(), String> {
     // TODO Move to cli arguemnt
     const ATTEMPTS: u32 = 3;
 

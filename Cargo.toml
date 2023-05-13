@@ -14,3 +14,4 @@ dirs-next = "2.0.0"
 futures = "0.3.28"
 notify-rust = "4.8.0"
 humantime = "2.1.0"
+clap = { version = "4.2.7", features = ["derive"] }

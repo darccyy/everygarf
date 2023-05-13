@@ -1,26 +1,34 @@
+/// CLI Arguments
+mod args;
+
 use std::{
     fs,
-    path::Path,
     sync::Arc,
     time::{Duration, Instant},
 };
 
+use clap::Parser;
 use futures::executor::block_on;
 use humantime::format_duration;
 use notify_rust::Notification;
 
+use args::Args;
 use everygarf::{
-    date_from_filename, fetch_and_save, filename_from_dir_entry, get_all_dates, get_parent_folder,
+    date_from_filename, fetch_and_save, filename_from_dir_entry, get_all_dates, parse_folder_path,
 };
+use reqwest::Client;
 
 #[tokio::main]
 async fn main() {
+    // Parse CLI arguments
+    let args = Args::parse();
+
     println!("=== EveryGarf ===");
     let start_time = Instant::now();
 
     // Error downloading
     // Due to network or IO
-    if let Err(err) = run().await {
+    if let Err(err) = run(args).await {
         eprintln!("[ERROR] {err}");
 
         // Send desktop notification
@@ -39,17 +47,25 @@ async fn main() {
     println!("Elapsed time: {}", format_duration(elapsed_time));
 }
 
-async fn run() -> Result<(), String> {
-    let folder = format!("{}/garfield", get_parent_folder().unwrap());
+async fn run(args: Args) -> Result<(), String> {
+    // Parse folder path from user input
+    let folder = parse_folder_path(args.folder)?;
 
-    // Create folder if it does not already exist
-    // Does not create parent folders iteratively
-    if !Path::new(&folder).exists() {
+    // Clean folder if argument given
+    if args.clean {
+        println!("Removing all images in: {folder}");
+
+        // Remove folder recursively
+        fs::remove_dir_all(&folder)
+            .map_err(|err| format!("Failed to remove folder `{folder}` - {err:?}"))?;
+
+        // Create folder again
+        // Does not create parent folders iteratively
         fs::create_dir(&folder)
-            .map_err(|err| format!("Failed to create folder at `{folder}` - {err:?}"))?;
+            .map_err(|err| format!("Failed to re-create folder `{folder}` - {err:?}"))?;
+    } else {
+        println!("Checking for missing images in: {folder}");
     }
-
-    println!("Checking for missing images in: {}/", folder);
 
     // All dates that have a comic
     let all_dates = get_all_dates();
@@ -80,7 +96,6 @@ async fn run() -> Result<(), String> {
         println!("Complete! No images missing to download!");
         return Ok(());
     }
-
     println!(
         "Downloading {} images using (up to) {} threads...",
         job_count, thread_count
@@ -101,10 +116,18 @@ async fn run() -> Result<(), String> {
 
         // Spawn thread and add to list
         let handle = std::thread::spawn(move || {
+            // Create http client (one per thread)
+            // Timeout from cli argument
+            let client = Client::builder()
+                .timeout(std::time::Duration::from_secs(args.timeout))
+                .build()
+                .map_err(|err| format!("Failed to build request client - {err:?}"))
+                .unwrap();
+
             // Run jobs per thread
             for date in chunk {
                 // Fetch image from date, and save to folder
-                let job = fetch_and_save(date, &folder, thread_no);
+                let job = fetch_and_save(&client, date, &folder, thread_no);
 
                 // Block thread, while async function runs
                 let result = block_on(job);

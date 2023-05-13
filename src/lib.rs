@@ -11,16 +11,41 @@ pub use date::get_all_dates;
 pub use fetch::fetch_and_save;
 
 use chrono::{Datelike, NaiveDate};
-use std::fs::DirEntry;
+use std::fs::{self, DirEntry};
 
-//TODO Remove
-pub fn get_parent_folder() -> Option<String> {
-    if let Some(dir) = dirs_next::picture_dir() {
-        if let Some(dir) = dir.to_str() {
-            return Some(dir.to_string());
-        }
+/// Canonicalize folder, replace `~` with home directory
+pub fn parse_folder_path(mut folder: String) -> Result<String, String> {
+    // Use home directory shorthand
+    if folder.starts_with("~/") {
+        // Get home directory
+        let Some(Some(home)) = dirs_next::home_dir().map(|dir|dir.to_str().map(|dir|dir.to_string())) else {
+            return Err(format!("Home directory cannot be found. Try entering manually with `/home/...`"));
+        };
+
+        // Remove first character
+        let mut chars = folder.chars();
+        chars.next();
+
+        // Concatenate
+        folder = home + chars.as_str();
     }
-    None
+
+    // Canonicalize directory
+    let folder_path = fs::canonicalize(&folder)
+        .map_err(|err| format!("Invalid folder path `{folder}` - {err:?}"))?;
+
+    // Convert path to string
+    let Some(folder) = folder_path.to_str() else {
+        return Err(format!("Invalid folder path `{folder}` - Invalid string"));
+    };
+    let mut folder = folder.to_string();
+
+    // Add `/` to end, if not already
+    if !folder.ends_with('/') {
+        folder.push('/');
+    }
+
+    Ok(folder)
 }
 
 /// Converts `DirEntry` into `String`
