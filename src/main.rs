@@ -23,20 +23,26 @@ async fn main() {
     // Parse CLI arguments
     let args = Args::parse();
 
-    println!("=== EveryGarf ===");
+    println!();
+    println!("\x1b[1m ┌─────────────┐\x1b[0m");
+    println!("\x1b[1m │  EveryGarf  │\x1b[0m");
+    println!("\x1b[1m └─────────────┘ \x1b[0;3mComic Downloader\x1b[0m");
 
     // Error downloading
     // Due to network or IO
+    let quiet = args.quiet;
     if let Err(err) = run(args).await {
-        eprintln!("[ERROR] {err}");
+        eprintln!("\x1b[1;4;31m\n[ERROR]\x1b[0;31m {err}\x1b[0m");
 
         // Send desktop notification
-        Notification::new()
-            .summary("EveryGarf Failed")
-            .body(&format!("Download failed.\n{err}"))
-            .timeout(Duration::from_secs(5))
-            .show()
-            .expect("Failed to show notification");
+        if !quiet {
+            Notification::new()
+                .summary("EveryGarf Failed")
+                .body(&format!("Download failed.\n{err}"))
+                .timeout(Duration::from_secs(5))
+                .show()
+                .expect("Failed to show notification");
+        }
 
         std::process::exit(1);
     }
@@ -50,7 +56,7 @@ async fn run(args: Args) -> Result<(), String> {
 
     // Clean folder if argument given
     if args.clean {
-        println!("Removing all images in: {folder}");
+        println!("Removing all images in: \x1b[4m{folder}\x1b[0m");
 
         // Remove folder recursively
         fs::remove_dir_all(&folder)
@@ -61,7 +67,7 @@ async fn run(args: Args) -> Result<(), String> {
         fs::create_dir(&folder)
             .map_err(|err| format!("Failed to re-create folder `{folder}` - {err:?}"))?;
     } else {
-        println!("Checking for missing images in: {folder}");
+        println!("Checking for missing images in: \x1b[4m{folder}\x1b[0m");
     }
 
     // All dates that have a comic
@@ -90,11 +96,11 @@ async fn run(args: Args) -> Result<(), String> {
 
     // No images are missing
     if job_count < 1 {
-        println!("Complete! No images missing to download!");
+        println!("\x1b[1;32mComplete!\x1b[0m No images missing to download!");
         return Ok(());
     }
     println!(
-        "Downloading {} images using (up to) {} threads...",
+        "Downloading \x1b[1m{}\x1b[0m images using (up to) \x1b[1m{}\x1b[0m threads...",
         job_count, thread_count
     );
 
@@ -124,7 +130,7 @@ async fn run(args: Args) -> Result<(), String> {
             // Run jobs per thread
             for date in chunk {
                 // Fetch image from date, and save to folder
-                let job = fetch_and_save(&client, date, &folder, thread_no);
+                let job = fetch_and_save(&client, date, &folder, thread_no, args.attempts);
 
                 // Block thread, while async function runs
                 let result = block_on(job);
@@ -147,10 +153,16 @@ async fn run(args: Args) -> Result<(), String> {
     }
 
     // All jobs in all threads completed successfully
-    println!("Complete! Downloaded {} images", job_count);
     // Show time program took to complete
     let elapsed_time = Duration::from_secs(start_time.elapsed().as_secs());
-    println!("Elapsed time: {}", format_duration(elapsed_time));
+    println!(
+        "\n\x1b[1;32mComplete!\x1b[0m Downloaded \x1b[1m{}\x1b[0m images",
+        job_count
+    );
+    println!(
+        "Elapsed time: \x1b[1m{}\x1b[0m",
+        format_duration(elapsed_time)
+    );
 
     Ok(())
 }

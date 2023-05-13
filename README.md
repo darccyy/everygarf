@@ -1,4 +1,4 @@
-# EveryGarf
+# EveryGarf Downloader
 
 A Rust program to download every Garfield comic to date.
 
@@ -10,8 +10,12 @@ A Rust program to download every Garfield comic to date.
     - if yes: do todays as well
     - if no: only do up to yesterday
 
+- add tests :(
+
 - Add stilo colours
 
 - Create folder if not exist?
 - Ignore 'clean' if folder not exist?
+
+- Add `attempts` argument
 

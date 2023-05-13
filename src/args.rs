@@ -1,6 +1,8 @@
 use clap::Parser;
 
-/// CLI Arguments
+/// EveryGarf Downloader
+///
+/// Download every Garfield comic, to date
 #[derive(Parser)]
 #[command(author, version, about)]
 pub struct Args {
@@ -18,4 +20,8 @@ pub struct Args {
     /// Don't send desktop notifications on error
     #[arg(short, long, default_value_t = false)]
     pub quiet: bool,
+
+    /// Amount of fetch attempts allowed, before hard error
+    #[arg(short, long, default_value_t = 5)]
+    pub attempts: u32,
 }
