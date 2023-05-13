@@ -9,7 +9,7 @@ use futures::executor::block_on;
 use humantime::format_duration;
 use notify_rust::Notification;
 
-use every_garfield::{
+use everygarf::{
     date_from_filename, fetch_and_save, filename_from_dir_entry, get_all_dates, get_parent_folder,
 };
 
