@@ -14,9 +14,9 @@ use chrono::{Datelike, NaiveDate};
 use std::fs::{self, DirEntry};
 
 /// Canonicalize folder, replace `~` with home directory
-pub fn parse_folder_path(mut folder: String) -> Result<String, String> {
+pub fn parse_folder_path(folder: &str) -> Result<String, String> {
     // Use home directory shorthand
-    if folder.starts_with("~/") {
+    let folder = if folder.starts_with("~/") {
         // Get home directory
         let Some(Some(home)) = dirs_next::home_dir().map(|dir|dir.to_str().map(|dir|dir.to_string())) else {
             return Err(format!("Home directory cannot be found. Try entering manually with `/home/...`"));
@@ -25,10 +25,11 @@ pub fn parse_folder_path(mut folder: String) -> Result<String, String> {
         // Remove first character
         let mut chars = folder.chars();
         chars.next();
-
         // Concatenate
-        folder = home + chars.as_str();
-    }
+        home + chars.as_str()
+    } else {
+        folder.to_string()
+    };
 
     // Canonicalize directory
     let folder_path = fs::canonicalize(&folder)

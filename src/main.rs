@@ -9,17 +9,20 @@ use std::{
 
 use clap::Parser;
 use futures::executor::block_on;
+use human_bytes::human_bytes;
 use humantime::format_duration;
 use notify_rust::Notification;
+use reqwest::Client;
 
 use args::Args;
 use everygarf::{
     date_from_filename, fetch_and_save, filename_from_dir_entry, get_all_dates, parse_folder_path,
 };
-use reqwest::Client;
 
 #[tokio::main]
 async fn main() {
+    let start_time = Instant::now();
+
     // Parse CLI arguments
     let args = Args::parse();
 
@@ -30,12 +33,11 @@ async fn main() {
 
     // Error downloading
     // Due to network or IO
-    let quiet = args.quiet;
-    if let Err(err) = run(args).await {
+    if let Err(err) = run(&args).await {
         eprintln!("\x1b[1;4;31m\n[ERROR]\x1b[0;31m {err}\x1b[0m");
 
         // Send desktop notification
-        if !quiet {
+        if !args.quiet {
             Notification::new()
                 .summary("EveryGarf Failed")
                 .body(&format!("Download failed.\n{err}"))
@@ -46,13 +48,22 @@ async fn main() {
 
         std::process::exit(1);
     }
+
+    // Show time program took to complete
+    let elapsed_time = Duration::from_secs(start_time.elapsed().as_secs());
+    // Get size of folder
+    let folder_size = fs_extra::dir::get_size(args.folder).expect("Failed to get size of folder");
+
+    println!(
+        "Elapsed time: \x1b[1m{}\x1b[0m | Total size: \x1b[1m{}\x1b[0m",
+        format_duration(elapsed_time),
+        human_bytes(folder_size as f64),
+    );
 }
 
-async fn run(args: Args) -> Result<(), String> {
-    let start_time = Instant::now();
-
+async fn run(args: &Args) -> Result<(), String> {
     // Parse folder path from user input
-    let folder = parse_folder_path(args.folder)?;
+    let folder = parse_folder_path(&args.folder)?;
 
     // Clean folder if argument given
     if args.clean {
@@ -117,12 +128,15 @@ async fn run(args: Args) -> Result<(), String> {
         let chunk = chunk.to_vec();
         let folder = Arc::clone(&folder);
 
+        let timeout = args.timeout;
+        let attempts = args.attempts;
+
         // Spawn thread and add to list
         let handle = std::thread::spawn(move || {
             // Create http client (one per thread)
             // Timeout from cli argument
             let client = Client::builder()
-                .timeout(std::time::Duration::from_secs(args.timeout))
+                .timeout(std::time::Duration::from_secs(timeout))
                 .build()
                 .map_err(|err| format!("Failed to build request client - {err:?}"))
                 .unwrap();
@@ -130,7 +144,7 @@ async fn run(args: Args) -> Result<(), String> {
             // Run jobs per thread
             for date in chunk {
                 // Fetch image from date, and save to folder
-                let job = fetch_and_save(&client, date, &folder, thread_no, args.attempts);
+                let job = fetch_and_save(&client, date, &folder, thread_no, attempts);
 
                 // Block thread, while async function runs
                 let result = block_on(job);
@@ -153,15 +167,9 @@ async fn run(args: Args) -> Result<(), String> {
     }
 
     // All jobs in all threads completed successfully
-    // Show time program took to complete
-    let elapsed_time = Duration::from_secs(start_time.elapsed().as_secs());
     println!(
         "\n\x1b[1;32mComplete!\x1b[0m Downloaded \x1b[1m{}\x1b[0m images",
-        job_count
-    );
-    println!(
-        "Elapsed time: \x1b[1m{}\x1b[0m",
-        format_duration(elapsed_time)
+        job_count,
     );
 
     Ok(())

@@ -12,10 +12,6 @@ A Rust program to download every Garfield comic to date.
 
 - add tests :(
 
-- Add stilo colours
-
 - Create folder if not exist?
 - Ignore 'clean' if folder not exist?
-
-- Add `attempts` argument
 
