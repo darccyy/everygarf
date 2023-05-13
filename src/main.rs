@@ -9,6 +9,7 @@ use every_garfield::{
     date, date_from_filename, fetch_and_save_comic, filename_from_dir_entry, get_dates_between,
     get_parent_folder,
 };
+use futures::executor::block_on;
 use notify_rust::Notification;
 
 #[tokio::main]
@@ -93,7 +94,7 @@ async fn run() -> Result<(), String> {
 
                 let job = fetch_and_save_comic(date, "/home/darcy/Pictures/garfield", progress);
 
-                let result = futures::executor::block_on(job);
+                let result = block_on(job);
 
                 if let Err(err) = result {
                     return Err(err);

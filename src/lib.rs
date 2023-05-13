@@ -81,7 +81,7 @@ pub async fn fetch_and_save_comic(
             Ok(()) => break,
 
             Err(err) => {
-                eprintln!("[warning] [Attempt {i}] Failed: {err}\n");
+                eprintln!("[warning] [Attempt {i}] Failed: {err}");
                 if i >= ATTEMPTS {
                     return Err(format!("Failed after {i} attempts: {err}"));
                 }
