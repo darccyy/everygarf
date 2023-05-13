@@ -1,13 +1,13 @@
 use chrono::{Duration, NaiveDate, Utc};
 
-/// Returns list of all dates, from first comic to today
+/// Returns list of all dates, from date of first comic to yesterday
 pub fn get_all_dates() -> Vec<NaiveDate> {
-    get_dates_between(first(), today())
+    get_dates_between(first(), yesterday())
 }
 
-/// Today's date, as `NaiveDate`
-fn today() -> NaiveDate {
-    Utc::now().date_naive()
+/// Yesterday's date, as `NaiveDate`
+fn yesterday() -> NaiveDate {
+    Utc::now().date_naive() - Duration::days(1)
 }
 
 /// Date of first comic, as `NaiveDate`
