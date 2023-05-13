@@ -24,7 +24,6 @@ async fn main() {
     let args = Args::parse();
 
     println!("=== EveryGarf ===");
-    let start_time = Instant::now();
 
     // Error downloading
     // Due to network or IO
@@ -41,13 +40,11 @@ async fn main() {
 
         std::process::exit(1);
     }
-
-    // Show time program took to complete
-    let elapsed_time = Duration::from_secs(start_time.elapsed().as_secs());
-    println!("Elapsed time: {}", format_duration(elapsed_time));
 }
 
 async fn run(args: Args) -> Result<(), String> {
+    let start_time = Instant::now();
+
     // Parse folder path from user input
     let folder = parse_folder_path(args.folder)?;
 
@@ -151,5 +148,9 @@ async fn run(args: Args) -> Result<(), String> {
 
     // All jobs in all threads completed successfully
     println!("Complete! Downloaded {} images", job_count);
+    // Show time program took to complete
+    let elapsed_time = Duration::from_secs(start_time.elapsed().as_secs());
+    println!("Elapsed time: {}", format_duration(elapsed_time));
+
     Ok(())
 }
