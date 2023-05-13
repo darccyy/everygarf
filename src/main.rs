@@ -15,15 +15,15 @@ use every_garfield::{
 
 #[tokio::main]
 async fn main() {
+    println!("=== EveryGarf ===");
+
     let start_time = Instant::now();
 
-    let result = run().await;
-
-    if let Err(err) = result {
+    if let Err(err) = run().await {
         eprintln!("[ERROR] {err}");
 
         Notification::new()
-            .summary("EveryGarfield Failed")
+            .summary("EveryGarf Failed")
             .body(&format!("Download failed.\n{err}"))
             .timeout(Duration::from_secs(5))
             .show()
@@ -37,8 +37,6 @@ async fn main() {
 }
 
 async fn run() -> Result<(), String> {
-    println!("=== EveryGarfield ===");
-
     let folder = format!("{}/garfield", get_parent_folder().unwrap());
 
     println!("Checking for missing images in: {}/", folder);
