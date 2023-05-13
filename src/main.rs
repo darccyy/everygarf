@@ -5,13 +5,13 @@ use std::{
     time::{Duration, Instant},
 };
 
-use every_garfield::{
-    date, date_from_filename, fetch_and_save_comic, filename_from_dir_entry, get_dates_between,
-    get_parent_folder,
-};
 use futures::executor::block_on;
 use humantime::format_duration;
 use notify_rust::Notification;
+
+use every_garfield::{
+    date_from_filename, fetch_and_save, filename_from_dir_entry, get_all_dates, get_parent_folder,
+};
 
 #[tokio::main]
 async fn main() {
@@ -48,10 +48,7 @@ async fn run() -> Result<(), String> {
             .map_err(|err| format!("Failed to create folder at `{folder}` - {err:?}"))?;
     }
 
-    let date_first = date::first();
-    let date_today = date::today();
-
-    let all_dates = get_dates_between(date_first, date_today);
+    let all_dates = get_all_dates();
 
     let existing_dates = fs::read_dir(&folder)
         .map_err(|err| format!("Failed to read directory at `{folder}` - {err:?}"))?;
@@ -95,7 +92,7 @@ async fn run() -> Result<(), String> {
 
         let handle = std::thread::spawn(move || {
             for date in chunk {
-                let job = fetch_and_save_comic(date, &folder, thread_no);
+                let job = fetch_and_save(date, &folder, thread_no);
 
                 let result = block_on(job);
 
