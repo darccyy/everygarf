@@ -111,8 +111,8 @@ async fn run(args: &Args) -> Result<(), String> {
         return Ok(());
     }
     println!(
-        "Downloading \x1b[1m{}\x1b[0m images using (up to) \x1b[1m{}\x1b[0m threads...",
-        job_count, thread_count
+        "Downloading \x1b[1m{}\x1b[0m images using (up to) \x1b[1m{}\x1b[0m threads...\n\x1b[2mNote: Downloads are not in order\x1b[0m",
+        job_count, thread_count,
     );
 
     // Number of jobs (images) per thread
