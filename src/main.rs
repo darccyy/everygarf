@@ -31,37 +31,55 @@ async fn main() {
     println!("\x1b[1m │  EveryGarf  │\x1b[0m");
     println!("\x1b[1m └─────────────┘ \x1b[0;3mComic Downloader\x1b[0m");
 
-    // Error downloading
-    // Due to network or IO
-    if let Err(err) = run(&args).await {
-        eprintln!("\x1b[1;4;31m\n[ERROR]\x1b[0;31m {err}\x1b[0m");
+    // Run program
+    let result = run(&args).await;
 
-        // Send desktop notification
-        if !args.quiet {
-            Notification::new()
-                .summary("EveryGarf Failed")
-                .body(&format!("Download failed.\n{err}"))
-                .timeout(Duration::from_secs(5))
-                .show()
-                .expect("Failed to show notification");
+    // Get amount of downloaded images from result
+    let downloaded_count = match result {
+        Ok(count) => count,
+
+        // Error downloading
+        // Mainly due to network or IO
+        Err(err) => {
+            eprintln!("\x1b[1;4;31m\n[ERROR]\x1b[0;31m {err}\x1b[0m");
+
+            // Send desktop notification
+            if !args.quiet {
+                Notification::new()
+                    .summary("EveryGarf Failed")
+                    .body(&format!("Download failed.\n{err}"))
+                    .timeout(Duration::from_secs(5))
+                    .show()
+                    .expect("Failed to show notification");
+            }
+
+            std::process::exit(1);
         }
-
-        std::process::exit(1);
-    }
+    };
 
     // Show time program took to complete
     let elapsed_time = Duration::from_secs(start_time.elapsed().as_secs());
     // Get size of folder
     let folder_size = fs_extra::dir::get_size(args.folder).expect("Failed to get size of folder");
 
+    println!();
+    println!("\x1b[1;32mComplete!\x1b[0m");
     println!(
-        "Elapsed time: \x1b[1m{}\x1b[0m | Total size: \x1b[1m{}\x1b[0m",
+        " \x1b[2m•\x1b[0m Downloaded:   \x1b[1m{} files\x1b[0m",
+        downloaded_count,
+    );
+    println!(
+        " \x1b[2m•\x1b[0m Elapsed time: \x1b[1m{}\x1b[0m",
         format_duration(elapsed_time),
+    );
+    println!(
+        " \x1b[2m•\x1b[0m Total size:   \x1b[1m{}\x1b[0m",
         human_bytes(folder_size as f64),
     );
+    println!();
 }
 
-async fn run(args: &Args) -> Result<(), String> {
+async fn run(args: &Args) -> Result<usize, String> {
     // Parse folder path from user input
     let folder = parse_folder_path(&args.folder)?;
 
@@ -107,9 +125,10 @@ async fn run(args: &Args) -> Result<(), String> {
 
     // No images are missing
     if job_count < 1 {
-        println!("\x1b[1;32mComplete!\x1b[0m No images missing to download!");
-        return Ok(());
+        println!("\x1b[1mNo images are missing that need to be downloaded!\x1b[0m");
+        return Ok(0);
     }
+
     println!(
         "Downloading \x1b[1m{}\x1b[0m images using (up to) \x1b[1m{}\x1b[0m threads...\n\x1b[2mNote: Downloads are not in order\x1b[0m",
         job_count, thread_count,
@@ -167,10 +186,5 @@ async fn run(args: &Args) -> Result<(), String> {
     }
 
     // All jobs in all threads completed successfully
-    println!(
-        "\n\x1b[1;32mComplete!\x1b[0m Downloaded \x1b[1m{}\x1b[0m images",
-        job_count,
-    );
-
-    Ok(())
+    Ok(job_count)
 }

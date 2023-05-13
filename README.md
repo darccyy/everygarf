@@ -10,12 +10,6 @@ A Rust program to download every Garfield comic to date.
 
 # TODO
 
-- download todays date (as opposed to yesterdays)
-    - must check for time, lest same image is downloaded with different name (different apparent date)
-    - check if current time is after a certain time (utc)
-    - if yes: do todays as well
-    - if no: only do up to yesterday
-
 - add tests :(
 
 - Create folder if not exist?

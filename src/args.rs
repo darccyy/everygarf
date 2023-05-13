@@ -21,7 +21,7 @@ pub struct Args {
     #[arg(short, long, default_value_t = false)]
     pub quiet: bool,
 
-    /// Amount of fetch attempts allowed, before hard error
-    #[arg(short, long, default_value_t = 5)]
+    /// Amount of fetch attempts allowed per thread, before hard error
+    #[arg(short, long, default_value_t = 10)]
     pub attempts: u32,
 }
