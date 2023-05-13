@@ -65,7 +65,7 @@ pub fn filename_from_dir_entry(dir_entry: DirEntry) -> Option<String> {
 pub async fn fetch_and_save_comic(
     date: NaiveDate,
     folder: &str,
-    progress: f32,
+    thread_no: usize,
 ) -> Result<(), String> {
     //TODO Move to ouside loop
     let client = Client::builder()
@@ -77,7 +77,7 @@ pub async fn fetch_and_save_comic(
     const ATTEMPTS: u32 = 3;
 
     for i in 1..=ATTEMPTS {
-        match attempt_fetch_and_save(&client, date, folder, progress).await {
+        match attempt_fetch_and_save(&client, date, folder, thread_no).await {
             Ok(()) => break,
 
             Err(err) => {
@@ -96,29 +96,24 @@ pub async fn attempt_fetch_and_save(
     client: &Client,
     date: NaiveDate,
     folder: &str,
-    progress: f32,
+    thread_no: usize,
 ) -> Result<(), String> {
-    print_step(progress, date, 1, format!("Fetching url of image"));
+    print_step(date, thread_no, 1, format!("Fetching url of image"));
 
     let url = garf::comic_url(client, date).await?;
 
-    print_step(progress, date, 2, format!("Fetching image from {url}"));
+    print_step(date, thread_no, 2, format!("Fetching image from {url}"));
 
     let filepath = format!("{}/{}.png", folder, date_to_string(date, "-", true));
     img::save_image(client, &url, &filepath).await?;
 
-    print_step(progress, date, 3, format!("DONE: Saved to {filepath}"));
+    print_step(date, thread_no, 3, format!("DONE: Saved to {filepath}"));
 
     Ok(())
 }
 
-fn print_step(progress: f32, date: NaiveDate, step: u32, status: String) {
-    let progress = if step == 1 {
-        let progress = format!("{:.2}", progress);
-        pad_left(&progress, 6, ' ') + "%"
-    } else {
-        String::from("       ")
-    };
+fn print_step(date: NaiveDate, thread_no: usize, step: u32, status: String) {
+    let thread_no = (thread_no + 1).to_string() + if thread_no < 9 { " " } else { "" };
 
     let step = match step {
         1 => "1..",
@@ -127,15 +122,15 @@ fn print_step(progress: f32, date: NaiveDate, step: u32, status: String) {
         _ => unreachable!("Invalid step"),
     };
 
-    println!("   {progress}  {date}  [{step}]  {status}");
+    println!("    {date}  #{thread_no}  [{step}]  {status}");
 }
 
-fn pad_left(text: &str, length: usize, ch: char) -> String {
-    if text.len() > length {
-        return text.to_string();
-    }
-
-    let pad = ch.to_string().repeat(length - text.len());
-
-    pad + text
-}
+// fn pad_left(text: &str, length: usize, ch: char) -> String {
+//     if text.len() > length {
+//         return text.to_string();
+//     }
+//
+//     let pad = ch.to_string().repeat(length - text.len());
+//
+//     pad + text
+// }

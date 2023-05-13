@@ -1,4 +1,4 @@
-# Every Garfield
+# EveryGarfield
 
 A Rust program to download every Garfield comic to date.
 

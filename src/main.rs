@@ -1,9 +1,4 @@
-use std::{
-    fs,
-    path::Path,
-    sync::{Arc, Mutex},
-    time::Duration,
-};
+use std::{fs, path::Path, time::Duration};
 
 use every_garfield::{
     date, date_from_filename, fetch_and_save_comic, filename_from_dir_entry, get_dates_between,
@@ -33,7 +28,7 @@ async fn run() -> Result<(), String> {
 
     let folder = format!("{}/garfield", get_parent_folder().unwrap());
 
-    println!("Save folder: {}", folder);
+    println!("Checking for missing images in: {}/", folder);
 
     if !Path::new(&folder).exists() {
         fs::create_dir(&folder)
@@ -63,7 +58,7 @@ async fn run() -> Result<(), String> {
     }
 
     let job_count = missing_dates.len();
-    let num_threads = num_cpus::get().min(job_count);
+    let thread_count = num_cpus::get().min(job_count);
 
     if job_count < 1 {
         println!("Complete! No images missing to download!");
@@ -71,28 +66,19 @@ async fn run() -> Result<(), String> {
     }
 
     println!(
-        "Downloading {} images using {} threads...",
-        job_count, num_threads
+        "Downloading {} images using (up to) {} threads...",
+        job_count, thread_count
     );
 
+    let chunk_size = job_count / thread_count + 1;
     let mut threads = vec![];
-    let job_no = Arc::new(Mutex::new(0));
 
-    for (_thread_no, chunk) in missing_dates
-        .chunks(job_count / num_threads + 1)
-        .enumerate()
-    {
+    for (thread_no, chunk) in missing_dates.chunks(chunk_size).enumerate() {
         let chunk = chunk.to_vec();
 
-        let job_no = Arc::clone(&job_no);
-
         let handle = std::thread::spawn(move || {
-            for date in chunk.into_iter() {
-                let mut job_no = job_no.lock().unwrap();
-                let progress = *job_no as f32 / job_count as f32 * 100.0;
-                *job_no += 1;
-
-                let job = fetch_and_save_comic(date, "/home/darcy/Pictures/garfield", progress);
+            for date in chunk {
+                let job = fetch_and_save_comic(date, "/home/darcy/Pictures/garfield", thread_no);
 
                 let result = block_on(job);
 
