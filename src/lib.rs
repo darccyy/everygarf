@@ -124,13 +124,3 @@ fn print_step(date: NaiveDate, thread_no: usize, step: u32, status: String) {
 
     println!("    {date}  #{thread_no}  [{step}]  {status}");
 }
-
-// fn pad_left(text: &str, length: usize, ch: char) -> String {
-//     if text.len() > length {
-//         return text.to_string();
-//     }
-//
-//     let pad = ch.to_string().repeat(length - text.len());
-//
-//     pad + text
-// }

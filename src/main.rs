@@ -1,15 +1,25 @@
-use std::{fs, path::Path, time::Duration};
+use std::{
+    fs,
+    path::Path,
+    sync::Arc,
+    time::{Duration, Instant},
+};
 
 use every_garfield::{
     date, date_from_filename, fetch_and_save_comic, filename_from_dir_entry, get_dates_between,
     get_parent_folder,
 };
 use futures::executor::block_on;
+use humantime::format_duration;
 use notify_rust::Notification;
 
 #[tokio::main]
 async fn main() {
-    if let Err(err) = run().await {
+    let start_time = Instant::now();
+
+    let result = run().await;
+
+    if let Err(err) = result {
         eprintln!("[ERROR] {err}");
 
         Notification::new()
@@ -21,6 +31,9 @@ async fn main() {
 
         std::process::exit(1);
     }
+
+    let elapsed_time = Duration::from_secs(start_time.elapsed().as_secs());
+    println!("Elapsed time: {}", format_duration(elapsed_time));
 }
 
 async fn run() -> Result<(), String> {
@@ -73,12 +86,16 @@ async fn run() -> Result<(), String> {
     let chunk_size = job_count / thread_count + 1;
     let mut threads = vec![];
 
+    let folder = Arc::new(folder);
+
     for (thread_no, chunk) in missing_dates.chunks(chunk_size).enumerate() {
         let chunk = chunk.to_vec();
 
+        let folder = Arc::clone(&folder);
+
         let handle = std::thread::spawn(move || {
             for date in chunk {
-                let job = fetch_and_save_comic(date, "/home/darcy/Pictures/garfield", thread_no);
+                let job = fetch_and_save_comic(date, &folder, thread_no);
 
                 let result = block_on(job);
 
