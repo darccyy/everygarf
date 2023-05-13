@@ -4,9 +4,10 @@ use tokio::runtime::Runtime;
 
 use super::date_to_string;
 
-/// Get image URL of comic, asynchronously, given a date (`NaiveDate`)
+/// Fetch image url, given date
 pub async fn fetch_url(client: &Client, date: NaiveDate) -> Result<String, String> {
     // Convert date to YYYY/MM/DD string
+    // Does not include trailing zero
     let date_string = date_to_string(date, "/", false);
 
     // Get webpage url from date string

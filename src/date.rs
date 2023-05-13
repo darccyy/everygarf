@@ -1,5 +1,6 @@
 use chrono::{Duration, NaiveDate, Utc};
 
+/// Returns list of all dates, from first comic to today
 pub fn get_all_dates() -> Vec<NaiveDate> {
     get_dates_between(first(), today())
 }
@@ -14,6 +15,7 @@ fn first() -> NaiveDate {
     NaiveDate::from_ymd_opt(1978, 6, 19).expect("Static date failed to parse")
 }
 
+/// Returns list of all dates, between two `NaiveDate`s
 fn get_dates_between(start: NaiveDate, end: NaiveDate) -> Vec<NaiveDate> {
     let mut dates = Vec::new();
 
