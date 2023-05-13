@@ -2,7 +2,6 @@ use std::{
     fs,
     path::Path,
     sync::{Arc, Mutex},
-    thread,
     time::Duration,
 };
 
@@ -10,19 +9,34 @@ use every_garfield::{
     date, date_from_filename, fetch_and_save_comic, filename_from_dir_entry, get_dates_between,
     get_parent_folder,
 };
-use reqwest::Client;
+use notify_rust::Notification;
 
-fn main() {
-    println!("=== Every-Garfield ===");
+#[tokio::main]
+async fn main() {
+    if let Err(err) = run().await {
+        eprintln!("[ERROR] {err}");
+
+        Notification::new()
+            .summary("EveryGarfield Failed")
+            .body(&format!("Download failed.\n{err}"))
+            .timeout(Duration::from_secs(5))
+            .show()
+            .expect("Failed to show notification");
+
+        std::process::exit(1);
+    }
+}
+
+async fn run() -> Result<(), String> {
+    println!("=== EveryGarfield ===");
 
     let folder = format!("{}/garfield", get_parent_folder().unwrap());
 
     println!("Save folder: {}", folder);
 
     if !Path::new(&folder).exists() {
-        if let Err(err) = fs::create_dir(&folder) {
-            panic!("Failed to create folder at `{folder}` - {err:?}");
-        }
+        fs::create_dir(&folder)
+            .map_err(|err| format!("Failed to create folder at `{folder}` - {err:?}"))?;
     }
 
     let date_first = date::first();
@@ -30,10 +44,8 @@ fn main() {
 
     let all_dates = get_dates_between(date_first, date_today);
 
-    let existing_dates = match fs::read_dir(&folder) {
-        Ok(dir) => dir,
-        Err(err) => panic!("Failed to read directory at `{folder}` - {err:?}"),
-    };
+    let existing_dates = fs::read_dir(&folder)
+        .map_err(|err| format!("Failed to read directory at `{folder}` - {err:?}"))?;
 
     let existing_dates: Vec<_> = existing_dates
         .flatten()
@@ -54,7 +66,7 @@ fn main() {
 
     if job_count < 1 {
         println!("Complete! No images missing to download!");
-        return;
+        return Ok(());
     }
 
     println!(
@@ -62,44 +74,41 @@ fn main() {
         job_count, num_threads
     );
 
-    let mut handles = Vec::new();
+    let mut threads = vec![];
     let job_no = Arc::new(Mutex::new(0));
 
-    for chunk in missing_dates.chunks(missing_dates.len() / num_threads + 1) {
-        let client = Client::builder()
-            .timeout(Duration::from_secs(30))
-            .build()
-            .expect("Failed to build request client");
-
+    for (_thread_no, chunk) in missing_dates
+        .chunks(job_count / num_threads + 1)
+        .enumerate()
+    {
         let chunk = chunk.to_vec();
 
-        let folder = folder.clone();
-        let job_no = job_no.clone();
+        let job_no = Arc::clone(&job_no);
 
-        let handle = thread::spawn(move || {
-            let rt = tokio::runtime::Runtime::new().unwrap();
+        let handle = std::thread::spawn(move || {
+            for date in chunk.into_iter() {
+                let mut job_no = job_no.lock().unwrap();
+                let progress = *job_no as f32 / job_count as f32 * 100.0;
+                *job_no += 1;
 
-            rt.block_on(async move {
-                for date in chunk {
-                    let mut job_no = job_no.lock().unwrap();
+                let job = fetch_and_save_comic(date, "/home/darcy/Pictures/garfield", progress);
 
-                    let progress = *job_no as f32 / job_count as f32;
-                    *job_no += 1;
+                let result = futures::executor::block_on(job);
 
-                    if let Err(()) = fetch_and_save_comic(&client, date, &folder, progress).await {
-                        eprintln!("FAILED. Refer to logs for details.");
-                        std::process::exit(1);
-                    }
+                if let Err(err) = result {
+                    return Err(err);
                 }
-            });
+            }
+            Ok(())
         });
 
-        handles.push(handle);
+        threads.push(handle);
     }
 
-    for handle in handles {
-        handle.join().unwrap();
+    for handle in threads {
+        handle.join().unwrap()?;
     }
 
     println!("Complete! Downloaded {} images", job_count);
+    Ok(())
 }

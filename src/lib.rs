@@ -63,23 +63,33 @@ pub fn filename_from_dir_entry(dir_entry: DirEntry) -> Option<String> {
 }
 
 pub async fn fetch_and_save_comic(
-    client: &Client,
     date: NaiveDate,
     folder: &str,
     progress: f32,
-) -> Result<(), ()> {
-    const ATTEMPTS: u32 = 10;
+) -> Result<(), String> {
+    //TODO Move to ouside loop
+    let client = Client::builder()
+        .timeout(std::time::Duration::from_secs(30))
+        .build()
+        .map_err(|err| format!("Failed to build request client - {err:?}"))
+        .unwrap();
 
-    for i in 0..ATTEMPTS {
-        match attempt_fetch_and_save(client, date, folder, progress).await {
-            Ok(()) => return Ok(()),
+    const ATTEMPTS: u32 = 3;
 
-            Err(error) => eprintln!("[warning] [Attempt {n}] Failed: {error}\n", n = i + 1),
+    for i in 1..=ATTEMPTS {
+        match attempt_fetch_and_save(&client, date, folder, progress).await {
+            Ok(()) => break,
+
+            Err(err) => {
+                eprintln!("[warning] [Attempt {i}] Failed: {err}\n");
+                if i >= ATTEMPTS {
+                    return Err(format!("Failed after {i} attempts: {err}"));
+                }
+            }
         }
     }
 
-    eprintln!("[ERROR] Failed after {ATTEMPTS} attempts\n");
-    return Err(());
+    Ok(())
 }
 
 pub async fn attempt_fetch_and_save(
@@ -104,9 +114,8 @@ pub async fn attempt_fetch_and_save(
 
 fn print_step(progress: f32, date: NaiveDate, step: u32, status: String) {
     let progress = if step == 1 {
-        let progress = format!("{:.2}", progress * 100.0);
-        let progress = pad_left(&progress, 6, ' ');
-        progress + "%"
+        let progress = format!("{:.2}", progress);
+        pad_left(&progress, 6, ' ') + "%"
     } else {
         String::from("       ")
     };
@@ -118,7 +127,7 @@ fn print_step(progress: f32, date: NaiveDate, step: u32, status: String) {
         _ => unreachable!("Invalid step"),
     };
 
-    println!("   {progress}   {date}  [{step}]  {status}");
+    println!("   {progress}  {date}  [{step}]  {status}");
 }
 
 fn pad_left(text: &str, length: usize, ch: char) -> String {

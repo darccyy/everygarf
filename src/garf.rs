@@ -1,5 +1,6 @@
 use chrono::NaiveDate;
 use reqwest::Client;
+use tokio::runtime::Runtime;
 
 use super::date_to_string;
 
@@ -15,14 +16,16 @@ pub async fn comic_url(client: &Client, date: NaiveDate) -> Result<String, Strin
     );
 
     // Fetch webpage body
-    let response_body = client
-        .get(url)
-        .send()
-        .await
-        .map_err(|err| format!("Fetching webpage body for image url: {err}"))?
-        .text()
-        .await
-        .map_err(|err| format!("Converting webpage body for image url to text: {err}"))?;
+    let response_body = Runtime::new().expect("Create runtime").block_on(async {
+        client
+            .get(url)
+            .send()
+            .await
+            .map_err(|err| format!("Fetching webpage body for image url: {err}"))?
+            .text()
+            .await
+            .map_err(|err| format!("Converting webpage body for image url to text: {err}"))
+    })?;
 
     // Find image url in HTML
     let Some(char_index)= response_body

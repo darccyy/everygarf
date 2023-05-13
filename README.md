@@ -7,6 +7,8 @@ A Rust program to download every Garfield comic to date.
 - Error handling!
 - Docs and comments!
 
+- Add duration message on completion (took XXX seconds)
+
 - Arguments
     - Save folder (default: Pictures/garfield)
     - Attempt count (default: 5)
