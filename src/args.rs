@@ -1,6 +1,6 @@
 use clap::Parser;
 
-/// EveryGarf Downloader
+/// EveryGarf Comic Downloader
 ///
 /// Download every Garfield comic, to date
 #[derive(Parser)]

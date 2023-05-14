@@ -1,4 +1,4 @@
-# EveryGarf Downloader
+# EveryGarf Comic Downloader
 
 A Rust program to download every Garfield comic to date.
 
@@ -8,10 +8,26 @@ A Rust program to download every Garfield comic to date.
 - Download time: ~50m, from one test
 - Images: 16,400
 
-# TODO
+# Installation
 
-- add tests :(
+Install from source with `cargo` 
 
-- Create folder if not exist?
-- Ignore 'clean' if folder not exist?
+```bash
+git clone https://github.com/darccyy/everygarf
+cd everygarf
+./install
+```
+
+# Usage
+
+```bash
+# Help information
+everygarf --help
+
+# Download to an existing folder
+everygarf ~/Pictures/garfield
+
+# Change some options
+everygarf ~/Pictures/garfield -cq --attempts 20 --timeout 30
+```
 
