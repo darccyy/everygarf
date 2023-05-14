@@ -125,7 +125,7 @@ async fn run(args: &Args) -> Result<usize, String> {
 
     // No images are missing
     if job_count < 1 {
-        println!("\x1b[32mNo images are missing that need to be downloaded!\x1b[0m");
+        println!("\x1b[32mEverything is already up to date!\x1b[0m");
         return Ok(0);
     }
 
