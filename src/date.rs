@@ -13,9 +13,9 @@ fn first() -> NaiveDate {
 /// Date of newest comic, as `NaiveDate`
 fn last() -> NaiveDate {
     // Get naive time (UTC) for when comic is published to gocomics.com
-    // Estimated time is 0000-0300 EST or 0500-08000 UTC
+    // Estimated time is 0000-0300 EST = 0400-08000 UTC = 1400-1700 AEST
     // One hour margin of error is added
-    let time_of_publish = NaiveTime::from_hms_opt(9, 0, 0).expect("Static time failed to parse");
+    let time_of_publish = NaiveTime::from_hms_opt(8, 0, 0).expect("Static time failed to parse");
 
     // Get current date and time
     let now = Utc::now();
