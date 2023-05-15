@@ -37,7 +37,7 @@ async fn main() {
             Notification::new()
                 .summary("EveryGarf Failed")
                 .body(&format!("Download failed.\n{err}"))
-                .timeout(Duration::from_secs(5))
+                .timeout(Duration::from_secs(10))
                 .show()
                 .expect("Failed to show notification");
         }
