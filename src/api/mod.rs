@@ -1,7 +1,11 @@
+// mod fast;
 mod slow;
 
 use chrono::NaiveDate;
 use reqwest::Client;
+use tokio::runtime::Runtime;
+
+use crate::date_to_string;
 
 /// Fetch image and save to file
 pub async fn fetch_and_save(
@@ -11,11 +15,13 @@ pub async fn fetch_and_save(
     thread_no: usize,
     attempts: u32,
 ) -> Result<(), String> {
+    let filepath = format!("{}{}.png", folder, date_to_string(date, "-", true));
+
     // Attempt a limited number of times
     for i in 1..=attempts {
         let func = slow::fetch_and_save;
 
-        match func(&client, date, folder, thread_no).await {
+        match func(&client, date, &filepath, thread_no).await {
             // Success!
             Ok(()) => break,
 
@@ -35,39 +41,6 @@ pub async fn fetch_and_save(
     Ok(())
 }
 
-// /// Attempt to fetch image and save to file
-// ///
-// /// Returns `Err` if anything fails
-// async fn attempt_fetch_and_save(
-//     client: &Client,
-//     date: NaiveDate,
-//     folder: &str,
-//     thread_no: usize,
-// ) -> Result<(), String> {
-//     // Fetch image url, given date
-//     print_step(date, thread_no, 1, format!("Fetching url of image"));
-//     let url = url::fetch_url(client, date).await?;
-//
-//     // Download image, given url, and save to file, given filepath
-//     print_step(
-//         date,
-//         thread_no,
-//         2,
-//         format!("Downloading image from \x1b[4m{url}\x1b[0m"),
-//     );
-//     let filepath = format!("{}/{}.png", folder, date_to_string(date, "-", true));
-//     download::save_image(client, &url, &filepath).await?;
-//
-//     // Done!
-//     print_step(
-//         date,
-//         thread_no,
-//         3,
-//         format!("Saved to \x1b[4m{filepath}\x1b[0m"),
-//     );
-//     Ok(())
-// }
-
 /// Print information for current stop of job
 ///
 /// Date of image, thread number, step number, and status information
@@ -86,4 +59,35 @@ fn print_step(date: NaiveDate, thread_no: usize, step: u32, info: String) {
     );
 
     println!("    \x1b[1m{date}\x1b[0m  \x1b[2m#{thread_no}\x1b[0m  \x1b[34m[{step}]\x1b[0m {icon} {info}");
+}
+
+/// Download image, given url, and save to file
+async fn save_image(client: &Client, url: &str, filepath: &str) -> Result<(), String> {
+    // Use tokio runtime
+    // Requests and I/O cannot be performed without this
+    Runtime::new().expect("Create runtime").block_on(async {
+        // Fetch response
+        let response = client
+            .get(url)
+            .send()
+            .await
+            .map_err(|err| format!("Fetching image from url - {err}"))?;
+
+        // Get bytes of image
+        let bytes = response
+            .bytes()
+            .await
+            .map_err(|err| format!("Converting image to bytes - {err}"))?;
+
+        // Parse image from bytes
+        let image = image::load_from_memory(&bytes)
+            .map_err(|err| format!("Loading image from bytes - {err}"))?;
+
+        // Save image to file
+        image
+            .save(filepath)
+            .map_err(|err| format!("Saving image file - {err}"))?;
+
+        Ok(())
+    })
 }

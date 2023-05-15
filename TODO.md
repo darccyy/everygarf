@@ -2,11 +2,17 @@
 
 - use reqwest::blocking ?
 
-- add tests :(
+- add url, date, step to error warning
 
-- change api???
-    - http://pt.jikos.cz/garfield/1987/2/
+- fix step (stage) numbers for 2-stage method
+
+- add tests :(
 
 - rename?
     - GarfDL garf-dl garfdl garfDL
+
+- add cli options
+    - use tree file structure
+    - choose file format (jpg)
+    - max cpu threads
 
