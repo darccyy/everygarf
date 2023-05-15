@@ -16,73 +16,80 @@ use reqwest::Client;
 
 use args::Args;
 use everygarf::{
-    date_from_filename, fetch_and_save, filename_from_dir_entry, get_all_dates, parse_folder_path,
+    date_from_filename, fetch_and_save, filename_from_dir_entry, get_all_dates, get_folder_path,
 };
 
 #[tokio::main]
 async fn main() {
-    let start_time = Instant::now();
-
     // Parse CLI arguments
     let args = Args::parse();
+
+    // Run whole program
+    let result = run_all(&args).await;
+
+    // Global error downloading
+    // Mainly due to network or IO
+    if let Err(err) = result {
+        eprintln!("\x1b[1;4;31m\n[ERROR]\x1b[0;31m {err}\x1b[0m");
+
+        // Send desktop notification
+        if !args.quiet {
+            Notification::new()
+                .summary("EveryGarf Failed")
+                .body(&format!("Download failed.\n{err}"))
+                .timeout(Duration::from_secs(5))
+                .show()
+                .expect("Failed to show notification");
+        }
+
+        std::process::exit(1);
+    }
+}
+
+/// Run whole program
+async fn run_all(args: &Args) -> Result<(), String> {
+    let start_time = Instant::now();
 
     println!();
     println!("\x1b[1m ┌─────────────┐\x1b[0m");
     println!("\x1b[1m │  EveryGarf  │\x1b[0m");
     println!("\x1b[1m └─────────────┘ \x1b[0;3mComic Downloader\x1b[0m");
 
-    // Run program
-    let result = run(&args).await;
+    // Get folder location
+    let folder = get_folder_path(args.folder.to_owned())?;
 
-    // Get amount of downloaded images from result
-    let downloaded_count = match result {
-        Ok(count) => count,
-
-        // Error downloading
-        // Mainly due to network or IO
-        Err(err) => {
-            eprintln!("\x1b[1;4;31m\n[ERROR]\x1b[0;31m {err}\x1b[0m");
-
-            // Send desktop notification
-            if !args.quiet {
-                Notification::new()
-                    .summary("EveryGarf Failed")
-                    .body(&format!("Download failed.\n{err}"))
-                    .timeout(Duration::from_secs(5))
-                    .show()
-                    .expect("Failed to show notification");
-            }
-
-            std::process::exit(1);
-        }
-    };
+    // Run download
+    let download_count = run_download(folder.clone(), args).await?;
 
     // Show time program took to complete
-    let elapsed_time = Duration::from_secs(start_time.elapsed().as_secs());
+    let elapsed_time = format_duration(Duration::from_secs(start_time.elapsed().as_secs()));
     // Get size of folder
-    let folder_size = fs_extra::dir::get_size(args.folder).expect("Failed to get size of folder");
+    let folder_size = match fs_extra::dir::get_size(folder) {
+        Ok(size) => human_bytes(size as f64),
+        Err(_) => String::from("[error]"),
+    };
 
     println!();
     println!("\x1b[1;32mComplete!\x1b[0m");
     println!(
         " \x1b[2m•\x1b[0m Downloaded:   \x1b[1m{} files\x1b[0m",
-        downloaded_count,
+        download_count,
     );
     println!(
         " \x1b[2m•\x1b[0m Elapsed time: \x1b[1m{}\x1b[0m",
-        format_duration(elapsed_time),
+        elapsed_time,
     );
     println!(
         " \x1b[2m•\x1b[0m Total size:   \x1b[1m{}\x1b[0m",
-        human_bytes(folder_size as f64),
+        folder_size,
     );
     println!();
+
+    Ok(())
 }
 
-async fn run(args: &Args) -> Result<usize, String> {
-    // Parse folder path from user input
-    let folder = parse_folder_path(&args.folder)?;
-
+/// Run only the download
+async fn run_download(folder: String, args: &Args) -> Result<usize, String> {
     // Clean folder if argument given
     if args.clean {
         println!("Removing all images in: \x1b[4m{folder}\x1b[0m");

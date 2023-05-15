@@ -11,25 +11,47 @@ pub use date::get_all_dates;
 pub use fetch::fetch_and_save;
 
 use chrono::{Datelike, NaiveDate};
-use std::fs::{self, DirEntry};
+use std::{
+    fs::{self, DirEntry},
+    path::{Path, PathBuf},
+};
 
-/// Canonicalize folder, replace `~` with home directory
-pub fn parse_folder_path(folder: &str) -> Result<String, String> {
-    // Use home directory shorthand
-    let folder = if folder.starts_with("~/") {
-        // Get home directory
-        let Some(Some(home)) = dirs_next::home_dir().map(|dir|dir.to_str().map(|dir|dir.to_string())) else {
-            return Err(format!("Home directory cannot be found. Try entering manually with `/home/...`"));
-        };
+/// Canonicalize folder, or find automatically, replace `~` with home directory
+pub fn get_folder_path(folder: Option<String>) -> Result<String, String> {
+    // Parse folder name, or use automatic
+    let folder = match folder {
+        // Use given folder
+        Some(folder) => {
+            // Using home directory shorthand
+            if folder.starts_with("~/") {
+                // Get home directory
+                let Some(Some(home)) = dirs_next::home_dir().map(path_buf_to_string) else {
+                    return Err(format!("Home directory cannot be found. Please enter manually with `/home/...`"));
+                };
 
-        // Remove first character
-        let mut chars = folder.chars();
-        chars.next();
-        // Concatenate
-        home + chars.as_str()
-    } else {
-        folder.to_string()
+                // Remove first character
+                let mut chars = folder.chars();
+                chars.next();
+                // Concatenate
+                home + chars.as_str()
+            } else {
+                folder
+            }
+        },
+
+        // Get parent folder automatically
+        None => match get_auto_parent_folder() {
+            Some(folder) => folder + "/garfield",
+            None =>  return Err(format!("Cannot automatically find appropriate folder location. Please enter folder manually"))
+        },
     };
+
+    // Create folder if not exist
+    // Does not create parents
+    if !Path::new(&folder).exists() {
+        fs::create_dir(&folder)
+            .map_err(|err| format!("Failed to create folder `{folder}` - {err:?}"))?;
+    }
 
     // Canonicalize directory
     let folder_path = fs::canonicalize(&folder)
@@ -49,7 +71,31 @@ pub fn parse_folder_path(folder: &str) -> Result<String, String> {
     Ok(folder)
 }
 
-/// Converts `DirEntry` into `String`
+/// Automatically get parent of download folder
+///
+/// Returns `None` if no appropriate folder could be found
+fn get_auto_parent_folder() -> Option<String> {
+    let dir = if let Some(dir) = dirs_next::picture_dir() {
+        dir
+    } else if let Some(dir) = dirs_next::document_dir() {
+        dir
+    } else if let Some(dir) = dirs_next::home_dir() {
+        dir
+    } else {
+        return None;
+    };
+
+    path_buf_to_string(dir)
+}
+
+/// Easily convert `PathBuf` to String
+///
+/// Returns `None` if any string conversion fails
+fn path_buf_to_string(path: PathBuf) -> Option<String> {
+    path.to_str().map(|path| path.to_string())
+}
+
+/// Easily convert `DirEntry` into `String`
 ///
 /// Returns `None` if any string conversion fails
 pub fn filename_from_dir_entry(dir_entry: DirEntry) -> Option<String> {

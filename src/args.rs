@@ -6,8 +6,10 @@ use clap::Parser;
 #[derive(Parser)]
 #[command(author, version, about)]
 pub struct Args {
-    /// Folder to save images to
-    pub folder: String,
+    /// Folder to download images into
+    ///
+    /// Leave blank to use 'garfield' folder in user pictures directory
+    pub folder: Option<String>,
 
     /// Clean (remove contents of) save folder (not recommended)
     #[arg(short, long, default_value_t = false)]
