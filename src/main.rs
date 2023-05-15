@@ -128,7 +128,10 @@ async fn run_download(folder: String, args: &Args) -> Result<usize, String> {
     // Amount of images to download
     let job_count = missing_dates.len();
     // Max amount of threads to use
-    let thread_count = num_cpus::get().min(job_count);
+    let mut thread_count = num_cpus::get().min(job_count);
+    if let Some(max_threads) = args.max_threads {
+        thread_count = thread_count.min(max_threads);
+    }
 
     // No images are missing
     if job_count < 1 {
@@ -154,8 +157,11 @@ async fn run_download(folder: String, args: &Args) -> Result<usize, String> {
         let chunk = chunk.to_vec();
         let folder = Arc::clone(&folder);
 
+        // Copy argument values
         let timeout = args.timeout;
         let attempts = args.attempts;
+        let alt_api = args.alt_api;
+        let file_tree = args.file_tree;
 
         // Spawn thread and add to list
         let handle = std::thread::spawn(move || {
@@ -170,7 +176,9 @@ async fn run_download(folder: String, args: &Args) -> Result<usize, String> {
             // Run jobs per thread
             for date in chunk {
                 // Fetch image from date, and save to folder
-                let job = fetch_and_save(&client, date, &folder, thread_no, attempts);
+                let job = fetch_and_save(
+                    &client, date, &folder, thread_no, attempts, alt_api, file_tree,
+                );
 
                 // Block thread, while async function runs
                 let result = block_on(job);

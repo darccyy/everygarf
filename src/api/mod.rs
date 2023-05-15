@@ -1,4 +1,4 @@
-// mod fast;
+mod fast;
 mod slow;
 
 use chrono::NaiveDate;
@@ -14,14 +14,22 @@ pub async fn fetch_and_save(
     folder: &str,
     thread_no: usize,
     attempts: u32,
+    alt_api: bool,
+    _file_tree: bool,
 ) -> Result<(), String> {
     let filepath = format!("{}{}.png", folder, date_to_string(date, "-", true));
 
     // Attempt a limited number of times
     for i in 1..=attempts {
-        let func = slow::fetch_and_save;
+        let result = if !alt_api {
+            // Slow, but reliable and robust
+            slow::fetch_and_save(&client, date, &filepath, thread_no).await
+        } else {
+            // Fast, but unreliable
+            fast::fetch_and_save(&client, date, &filepath, thread_no).await
+        };
 
-        match func(&client, date, &filepath, thread_no).await {
+        match result {
             // Success!
             Ok(()) => break,
 
