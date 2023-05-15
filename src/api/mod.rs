@@ -15,7 +15,6 @@ pub async fn fetch_and_save(
     thread_no: usize,
     attempts: u32,
     alt_api: bool,
-    _file_tree: bool,
 ) -> Result<(), String> {
     let filepath = format!("{}{}.png", folder, date_to_string(date, "-", true));
 

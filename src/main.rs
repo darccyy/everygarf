@@ -161,7 +161,6 @@ async fn run_download(folder: String, args: &Args) -> Result<usize, String> {
         let timeout = args.timeout;
         let attempts = args.attempts;
         let alt_api = args.alt_api;
-        let file_tree = args.file_tree;
 
         // Spawn thread and add to list
         let handle = std::thread::spawn(move || {
@@ -176,9 +175,7 @@ async fn run_download(folder: String, args: &Args) -> Result<usize, String> {
             // Run jobs per thread
             for date in chunk {
                 // Fetch image from date, and save to folder
-                let job = fetch_and_save(
-                    &client, date, &folder, thread_no, attempts, alt_api, file_tree,
-                );
+                let job = fetch_and_save(&client, date, &folder, thread_no, attempts, alt_api);
 
                 // Block thread, while async function runs
                 let result = block_on(job);

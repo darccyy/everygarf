@@ -27,12 +27,6 @@ pub struct Args {
     #[arg(short, long, default_value_t = 10)]
     pub attempts: u32,
 
-    /// Use tree-like file structure for images
-    ///
-    /// Slashes not dashes for dates
-    #[arg(short, long)]
-    pub file_tree: bool,
-
     /// Max CPU threads to use
     ///
     /// By default uses all threads possible

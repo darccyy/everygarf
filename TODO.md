@@ -14,5 +14,4 @@
 - add cli options
     - use tree file structure
     - choose file format (jpg)
-    - max cpu threads
 
