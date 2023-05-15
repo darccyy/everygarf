@@ -8,7 +8,6 @@ use std::{
 };
 
 use clap::Parser;
-use futures::executor::block_on;
 use human_bytes::human_bytes;
 use humantime::format_duration;
 use notify_rust::Notification;
@@ -19,13 +18,12 @@ use everygarf::{
     date_from_filename, fetch_and_save, filename_from_dir_entry, get_all_dates, get_folder_path,
 };
 
-#[tokio::main]
-async fn main() {
+fn main() {
     // Parse CLI arguments
     let args = Args::parse();
 
     // Run whole program
-    let result = run_all(&args).await;
+    let result = run_all(&args);
 
     // Global error downloading
     // Mainly due to network or IO
@@ -47,7 +45,7 @@ async fn main() {
 }
 
 /// Run whole program
-async fn run_all(args: &Args) -> Result<(), String> {
+fn run_all(args: &Args) -> Result<(), String> {
     let start_time = Instant::now();
 
     println!();
@@ -59,7 +57,7 @@ async fn run_all(args: &Args) -> Result<(), String> {
     let folder = get_folder_path(args.folder.to_owned())?;
 
     // Run download
-    let download_count = run_download(folder.clone(), args).await?;
+    let download_count = run_download(folder.clone(), args)?;
 
     // Show time program took to complete
     let elapsed_time = format_duration(Duration::from_secs(start_time.elapsed().as_secs()));
@@ -89,7 +87,7 @@ async fn run_all(args: &Args) -> Result<(), String> {
 }
 
 /// Run only the download
-async fn run_download(folder: String, args: &Args) -> Result<usize, String> {
+fn run_download(folder: String, args: &Args) -> Result<usize, String> {
     // Clean folder if argument given
     if args.clean {
         println!("Removing all images in: \x1b[4m{folder}\x1b[0m");
@@ -175,10 +173,7 @@ async fn run_download(folder: String, args: &Args) -> Result<usize, String> {
             // Run jobs per thread
             for date in chunk {
                 // Fetch image from date, and save to folder
-                let job = fetch_and_save(&client, date, &folder, thread_no, attempts, alt_api);
-
-                // Block thread, while async function runs
-                let result = block_on(job);
+                let result = fetch_and_save(&client, date, &folder, thread_no, attempts, alt_api);
 
                 // Stop thread and report error
                 if let Err(err) = result {

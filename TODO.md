@@ -1,7 +1,5 @@
 # TODO
 
-- use reqwest::blocking ?
-
 - add url, date, step to error warning
 
 - fix step (stage) numbers for 2-stage method

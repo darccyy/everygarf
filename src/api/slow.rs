@@ -1,12 +1,11 @@
 use chrono::NaiveDate;
 use reqwest::Client;
-use tokio::runtime::Runtime;
 
 use super::{print_step, save_image};
 use crate::date_to_string;
 
 /// Fetch image and download
-pub async fn fetch_and_save(
+pub fn fetch_and_save(
     client: &Client,
     date: NaiveDate,
     filepath: &str,
@@ -15,7 +14,7 @@ pub async fn fetch_and_save(
     print_step(date, thread_no, 1, format!("Fetching url of image"));
 
     // Fetch image url, given date
-    let url = fetch_url(client, date).await?;
+    let url = fetch_url(client, date)?;
 
     print_step(
         date,
@@ -25,7 +24,7 @@ pub async fn fetch_and_save(
     );
 
     // Download image, given url, and save to file, given filepath
-    save_image(client, &url, &filepath).await?;
+    save_image(client, &url, &filepath)?;
 
     // Done!
     print_step(
@@ -38,7 +37,7 @@ pub async fn fetch_and_save(
 }
 
 /// Fetch image url, given date
-async fn fetch_url(client: &Client, date: NaiveDate) -> Result<String, String> {
+fn fetch_url(_client: &Client, date: NaiveDate) -> Result<String, String> {
     // Convert date to YYYY/MM/DD string
     // Does not include trailing zero
     let date_string = date_to_string(date, "/", false);
@@ -50,16 +49,10 @@ async fn fetch_url(client: &Client, date: NaiveDate) -> Result<String, String> {
     );
 
     // Fetch webpage body
-    let response_body = Runtime::new().expect("Create runtime").block_on(async {
-        client
-            .get(url)
-            .send()
-            .await
-            .map_err(|err| format!("Fetching webpage body for image url - {err}"))?
-            .text()
-            .await
-            .map_err(|err| format!("Converting webpage body for image url to text - {err}"))
-    })?;
+    let response_body = reqwest::blocking::get(url)
+        .map_err(|err| format!("Fetching webpage body for image url - {err}"))?
+        .text()
+        .map_err(|err| format!("Converting webpage body for image url to text - {err}"))?;
 
     // Find image url in HTML
     let Some(char_index)= response_body

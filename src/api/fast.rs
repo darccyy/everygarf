@@ -3,7 +3,7 @@ use reqwest::Client;
 
 use super::{print_step, save_image};
 
-pub async fn fetch_and_save(
+pub fn fetch_and_save(
     client: &Client,
     date: NaiveDate,
     filepath: &str,
@@ -15,7 +15,7 @@ pub async fn fetch_and_save(
         YY = last_two_digits(date.year()),
         MM = leading_zero(date.month()),
         DD = leading_zero(date.day()),
-        format = if date.weekday() == Weekday::Mon {
+        format = if date.weekday() == Weekday::Sun {
             "jpg"
         } else {
             "gif"
@@ -29,7 +29,7 @@ pub async fn fetch_and_save(
         format!("Downloading image from \x1b[4m{url}\x1b[0m"),
     );
 
-    save_image(client, &url, &filepath).await?;
+    save_image(client, &url, &filepath)?;
 
     // Done!
     print_step(

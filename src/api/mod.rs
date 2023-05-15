@@ -3,12 +3,11 @@ mod slow;
 
 use chrono::NaiveDate;
 use reqwest::Client;
-use tokio::runtime::Runtime;
 
 use crate::date_to_string;
 
 /// Fetch image and save to file
-pub async fn fetch_and_save(
+pub fn fetch_and_save(
     client: &Client,
     date: NaiveDate,
     folder: &str,
@@ -22,10 +21,10 @@ pub async fn fetch_and_save(
     for i in 1..=attempts {
         let result = if !alt_api {
             // Slow, but reliable and robust
-            slow::fetch_and_save(&client, date, &filepath, thread_no).await
+            slow::fetch_and_save(&client, date, &filepath, thread_no)
         } else {
             // Fast, but unreliable
-            fast::fetch_and_save(&client, date, &filepath, thread_no).await
+            fast::fetch_and_save(&client, date, &filepath, thread_no)
         };
 
         match result {
@@ -69,32 +68,24 @@ fn print_step(date: NaiveDate, thread_no: usize, step: u32, info: String) {
 }
 
 /// Download image, given url, and save to file
-async fn save_image(client: &Client, url: &str, filepath: &str) -> Result<(), String> {
-    // Use tokio runtime
-    // Requests and I/O cannot be performed without this
-    Runtime::new().expect("Create runtime").block_on(async {
-        // Fetch response
-        let response = client
-            .get(url)
-            .send()
-            .await
-            .map_err(|err| format!("Fetching image from url - {err}"))?;
+fn save_image(_client: &Client, url: &str, filepath: &str) -> Result<(), String> {
+    // Fetch response
+    let response =
+        reqwest::blocking::get(url).map_err(|err| format!("Fetching image from url - {err}"))?;
 
-        // Get bytes of image
-        let bytes = response
-            .bytes()
-            .await
-            .map_err(|err| format!("Converting image to bytes - {err}"))?;
+    // Get bytes of image
+    let bytes = response
+        .bytes()
+        .map_err(|err| format!("Converting image to bytes - {err}"))?;
 
-        // Parse image from bytes
-        let image = image::load_from_memory(&bytes)
-            .map_err(|err| format!("Loading image from bytes - {err}"))?;
+    // Parse image from bytes
+    let image = image::load_from_memory(&bytes)
+        .map_err(|err| format!("Loading image from bytes - {err}"))?;
 
-        // Save image to file
-        image
-            .save(filepath)
-            .map_err(|err| format!("Saving image file - {err}"))?;
+    // Save image to file
+    image
+        .save(filepath)
+        .map_err(|err| format!("Saving image file - {err}"))?;
 
-        Ok(())
-    })
+    Ok(())
 }
