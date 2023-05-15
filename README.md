@@ -24,8 +24,8 @@ cd everygarf
 # Help information
 everygarf --help
 
-# Download to an existing folder
-everygarf ~/Pictures/garfield
+# Download to default folder ('garfield' in user pictures directory)
+everygarf
 
 # Change some options
 everygarf ~/Pictures/garfield -cq --attempts 20 --timeout 30

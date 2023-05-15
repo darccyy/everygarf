@@ -8,7 +8,7 @@ use clap::Parser;
 pub struct Args {
     /// Folder to download images into
     ///
-    /// Leave blank to use 'garfield' folder in user pictures directory
+    /// Leave blank to use 'garfield' folder in user pictures directory (~/Pictures/garfield)
     pub folder: Option<String>,
 
     /// Clean (remove contents of) save folder (not recommended)
