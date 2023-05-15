@@ -1,7 +1,7 @@
+mod slow;
+
 use chrono::NaiveDate;
 use reqwest::Client;
-
-use super::{date_to_string, download, url};
 
 /// Fetch image and save to file
 pub async fn fetch_and_save(
@@ -13,7 +13,9 @@ pub async fn fetch_and_save(
 ) -> Result<(), String> {
     // Attempt a limited number of times
     for i in 1..=attempts {
-        match attempt_fetch_and_save(&client, date, folder, thread_no).await {
+        let func = slow::fetch_and_save;
+
+        match func(&client, date, folder, thread_no).await {
             // Success!
             Ok(()) => break,
 
@@ -33,38 +35,38 @@ pub async fn fetch_and_save(
     Ok(())
 }
 
-/// Attempt to fetch image and save to file
-///
-/// Returns `Err` if anything fails
-async fn attempt_fetch_and_save(
-    client: &Client,
-    date: NaiveDate,
-    folder: &str,
-    thread_no: usize,
-) -> Result<(), String> {
-    // Fetch image url, given date
-    print_step(date, thread_no, 1, format!("Fetching url of image"));
-    let url = url::fetch_url(client, date).await?;
-
-    // Download image, given url, and save to file, given filepath
-    print_step(
-        date,
-        thread_no,
-        2,
-        format!("Downloading image from \x1b[4m{url}\x1b[0m"),
-    );
-    let filepath = format!("{}/{}.png", folder, date_to_string(date, "-", true));
-    download::save_image(client, &url, &filepath).await?;
-
-    // Done!
-    print_step(
-        date,
-        thread_no,
-        3,
-        format!("Saved to \x1b[4m{filepath}\x1b[0m"),
-    );
-    Ok(())
-}
+// /// Attempt to fetch image and save to file
+// ///
+// /// Returns `Err` if anything fails
+// async fn attempt_fetch_and_save(
+//     client: &Client,
+//     date: NaiveDate,
+//     folder: &str,
+//     thread_no: usize,
+// ) -> Result<(), String> {
+//     // Fetch image url, given date
+//     print_step(date, thread_no, 1, format!("Fetching url of image"));
+//     let url = url::fetch_url(client, date).await?;
+//
+//     // Download image, given url, and save to file, given filepath
+//     print_step(
+//         date,
+//         thread_no,
+//         2,
+//         format!("Downloading image from \x1b[4m{url}\x1b[0m"),
+//     );
+//     let filepath = format!("{}/{}.png", folder, date_to_string(date, "-", true));
+//     download::save_image(client, &url, &filepath).await?;
+//
+//     // Done!
+//     print_step(
+//         date,
+//         thread_no,
+//         3,
+//         format!("Saved to \x1b[4m{filepath}\x1b[0m"),
+//     );
+//     Ok(())
+// }
 
 /// Print information for current stop of job
 ///

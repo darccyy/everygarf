@@ -1,14 +1,10 @@
+/// Fetch and download image
+mod api;
 /// Get all dates between first comic and today
 mod date;
-/// Download image, given url, and save to file
-mod download;
-/// Fetch image and save to file
-mod fetch;
-/// Fetch image url, given date
-mod url;
 
+pub use api::fetch_and_save;
 pub use date::get_all_dates;
-pub use fetch::fetch_and_save;
 
 use chrono::{Datelike, NaiveDate};
 use std::{

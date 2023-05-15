@@ -1,5 +1,7 @@
 # TODO
 
+- use reqwest::blocking ?
+
 - add tests :(
 
 - change api???
