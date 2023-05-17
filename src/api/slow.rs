@@ -1,5 +1,5 @@
 use chrono::NaiveDate;
-use reqwest::Client;
+use reqwest::blocking::Client;
 
 use super::{print_step, save_image};
 use crate::date_to_string;
@@ -63,7 +63,7 @@ fn fetch_url(_client: &Client, date: NaiveDate) -> Result<String, String> {
 
     // Get string from character index
     let Some(image_url)= response_body.get(char_index..char_index + 63) else {
-        return Err(format!("Slicing text of webpage body for image url"));
+        return Err(format!("Slicing text of webpage body for image url (incomplete url?)"));
     };
 
     Ok(image_url.to_string())

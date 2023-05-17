@@ -15,7 +15,7 @@ use std::{
 /// Canonicalize folder, or find automatically, replace `~` with home directory
 pub fn get_folder_path(folder: Option<String>) -> Result<String, String> {
     // Parse folder name, or use automatic
-    let folder = match folder {
+    let mut folder = match folder {
         // Use given folder
         Some(folder) => {
             // Using home directory shorthand
@@ -48,16 +48,6 @@ pub fn get_folder_path(folder: Option<String>) -> Result<String, String> {
         fs::create_dir(&folder)
             .map_err(|err| format!("Failed to create folder `{folder}` - {err:?}"))?;
     }
-
-    // Canonicalize directory
-    let folder_path = fs::canonicalize(&folder)
-        .map_err(|err| format!("Invalid folder path `{folder}` - {err:?}"))?;
-
-    // Convert path to string
-    let Some(folder) = folder_path.to_str() else {
-        return Err(format!("Invalid folder path `{folder}` - Invalid string"));
-    };
-    let mut folder = folder.to_string();
 
     // Add `/` to end, if not already
     if !folder.ends_with('/') {

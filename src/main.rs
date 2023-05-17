@@ -11,7 +11,7 @@ use clap::Parser;
 use human_bytes::human_bytes;
 use humantime::format_duration;
 use notify_rust::Notification;
-use reqwest::Client;
+use reqwest::blocking::Client;
 
 use args::Args;
 use everygarf::{
@@ -23,12 +23,20 @@ fn main() {
     let args = Args::parse();
 
     // Run whole program
-    let result = run_all(&args);
+    let result = if args.attempts > 0 {
+        run_all(&args)
+    } else {
+        // CLI argument `attempts` is zero
+        Err(String::from("No attempts were allowed :("))
+    };
 
     // Global error downloading
     // Mainly due to network or IO
     if let Err(err) = result {
-        eprintln!("\x1b[1;4;31m\n[ERROR]\x1b[0;31m {err}\x1b[0m");
+        eprintln!();
+        eprintln!("\x1b[31m=============[ERROR]=============\x1b[0m");
+        eprintln!("{err}");
+        eprintln!("\x1b[31m=================================\x1b[0m");
 
         // Send desktop notification
         if !args.quiet {

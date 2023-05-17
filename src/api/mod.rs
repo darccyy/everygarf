@@ -2,7 +2,7 @@ mod fast;
 mod slow;
 
 use chrono::NaiveDate;
-use reqwest::Client;
+use reqwest::blocking::Client;
 
 use crate::date_to_string;
 
@@ -34,11 +34,13 @@ pub fn fetch_and_save(
             // Error
             Err(err) => {
                 // Warn with attempt number
-                eprintln!("\x1b[33m[warning] \x1b[2m[Attempt {i}]\x1b[0m Failed: {err}");
+                eprintln!("\x1b[33m[warning] \x1b[2m[Attempt {i}]\x1b[0m \x1b[1m{date}\x1b[0m Failed: {err}");
                 // No more attempts - Return Error
                 // Exits program from `main`
                 if i >= attempts {
-                    return Err(format!("Failed after {i} attempts: {err}"));
+                    return Err(format!(
+                        "\x1b[1m{date}\x1b[0m Failed after {i} attempts: {err}"
+                    ));
                 }
             }
         }
@@ -68,10 +70,12 @@ fn print_step(date: NaiveDate, thread_no: usize, step: u32, info: String) {
 }
 
 /// Download image, given url, and save to file
-fn save_image(_client: &Client, url: &str, filepath: &str) -> Result<(), String> {
+fn save_image(client: &Client, url: &str, filepath: &str) -> Result<(), String> {
     // Fetch response
-    let response =
-        reqwest::blocking::get(url).map_err(|err| format!("Fetching image from url - {err}"))?;
+    let response = client
+        .get(url)
+        .send()
+        .map_err(|err| format!("Fetching image from url - {err}"))?;
 
     // Get bytes of image
     let bytes = response

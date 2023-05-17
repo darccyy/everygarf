@@ -1,5 +1,5 @@
 use chrono::{Datelike, NaiveDate, Weekday};
-use reqwest::Client;
+use reqwest::blocking::Client;
 
 use super::{print_step, save_image};
 
