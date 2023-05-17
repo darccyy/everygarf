@@ -49,21 +49,21 @@ fn fetch_url(_client: &Client, date: NaiveDate) -> Result<String, String> {
     );
 
     // Fetch webpage body
-    let response_body = reqwest::blocking::get(url)
-        .map_err(|err| format!("Fetching webpage body for image url - {err}"))?
+    let response_body = reqwest::blocking::get(&url)
+        .map_err(|err| format!("Fetching webpage body for image url ({url}) - {err}"))?
         .text()
-        .map_err(|err| format!("Converting webpage body for image url to text - {err}"))?;
+        .map_err(|err| format!("Converting webpage body for image url to text ({url}) - {err}"))?;
 
     // Find image url in HTML
     let Some(char_index)= response_body
         .find("https://assets.amuniversal.com")
         else {
-            return Err(format!("Cannot find image url in webpage body"));
+            return Err(format!("Cannot find image url in webpage body ({url})"));
         };
 
     // Get string from character index
     let Some(image_url)= response_body.get(char_index..char_index + 63) else {
-        return Err(format!("Slicing text of webpage body for image url (incomplete url?)"));
+        return Err(format!("Slicing text of webpage body for image url ({url})"));
     };
 
     Ok(image_url.to_string())

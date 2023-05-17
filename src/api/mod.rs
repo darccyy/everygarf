@@ -75,21 +75,21 @@ fn save_image(client: &Client, url: &str, filepath: &str) -> Result<(), String> 
     let response = client
         .get(url)
         .send()
-        .map_err(|err| format!("Fetching image from url - {err}"))?;
+        .map_err(|err| format!("Fetching image from url ({url}) - {err}"))?;
 
     // Get bytes of image
     let bytes = response
         .bytes()
-        .map_err(|err| format!("Converting image to bytes - {err}"))?;
+        .map_err(|err| format!("Converting image to bytes ({url}) - {err}"))?;
 
     // Parse image from bytes
     let image = image::load_from_memory(&bytes)
-        .map_err(|err| format!("Loading image from bytes - {err}"))?;
+        .map_err(|err| format!("Loading image from bytes ({url}) - {err}"))?;
 
     // Save image to file
     image
         .save(filepath)
-        .map_err(|err| format!("Saving image file - {err}"))?;
+        .map_err(|err| format!("Saving image file ({filepath}) - {err}"))?;
 
     Ok(())
 }
