@@ -37,7 +37,7 @@ pub fn fetch_and_save(
 }
 
 /// Fetch image url, given date
-fn fetch_url(_client: &Client, date: NaiveDate) -> Result<String, String> {
+fn fetch_url(client: &Client, date: NaiveDate) -> Result<String, String> {
     // Convert date to YYYY/MM/DD string
     // Does not include trailing zero
     let date_string = date_to_string(date, "/", false);
@@ -48,9 +48,16 @@ fn fetch_url(_client: &Client, date: NaiveDate) -> Result<String, String> {
         date_string
     );
 
-    // Fetch webpage body
-    let response_body = reqwest::blocking::get(&url)
+    // Fetch request
+    let response= client
+        .get(&url)
+        .send()
         .map_err(|err| format!("Fetching webpage body for image url ({url}) - {err}"))?
+        .error_for_status()
+        .map_err(|err| format!("Server returned error ({url}) Possibly rate limited by Cloudflare. Try again in a few minutes. - {err}"))?;
+
+    // Fetch webpage body
+    let response_body = response
         .text()
         .map_err(|err| format!("Converting webpage body for image url to text ({url}) - {err}"))?;
 

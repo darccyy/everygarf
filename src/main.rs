@@ -174,6 +174,7 @@ fn run_download(folder: String, args: &Args) -> Result<usize, String> {
             // Timeout from cli argument
             let client = Client::builder()
                 .timeout(std::time::Duration::from_secs(timeout))
+                .user_agent("Mozilla/5.0 (Windows NT 10.0; WOW64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.5666.197 Safari/537.36")
                 .build()
                 .map_err(|err| format!("Failed to build request client - {err:?}"))
                 .unwrap();
