@@ -13,9 +13,15 @@ A Rust program to download every Garfield comic to date.
 Install from source with `cargo` 
 
 ```bash
+# Download source code
 git clone https://github.com/darccyy/everygarf
 cd everygarf
-./install
+
+# Install
+sh install
+
+# Alternative install method
+cargo install --path .
 ```
 
 # Usage
