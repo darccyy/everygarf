@@ -18,7 +18,7 @@ fn last() -> NaiveDate {
     //      0400-0700 UTC
     //      1400-1700 AEST
     // Add a margin of error is added just in case
-    let time_of_publish = NaiveTime::from_hms_opt(8, 0, 0).expect("Static time failed to parse");
+    let time_of_publish = NaiveTime::from_hms_opt(7, 0, 0).expect("Static time failed to parse");
 
     // Get current date and time
     let now = Utc::now();
